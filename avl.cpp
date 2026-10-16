@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 using namespace std;
 
 template<typename T>
@@ -7,87 +8,98 @@ struct AVL {
     struct TreeNode {
         T data;
         int height;
-        TreeNode* left;
-        TreeNode* right;
-
-        TreeNode(T data) : data(data), height(0), left(nullptr), right(nullptr) {}
+        int left;
+        int right;
     };
 
-    TreeNode* root;
+    vector<TreeNode> t;
+    vector<int> libres;
+    int root;
 
     AVL() {
-        root = nullptr;
+        t.push_back(TreeNode());
+        root = 0;
     }
 
-    ~AVL() {
-        destroy(root);
+    int new_node(T value) {
+        int u;
+        if (!libres.empty()) {
+            u = libres.back();
+            libres.pop_back();
+        }
+        else {
+            u = t.size();
+            t.push_back(TreeNode());
+        }
+        t[u].data = value;
+        t[u].height = 0;
+        t[u].left = 0;
+        t[u].right = 0;
+        return u;
     }
 
-    void destroy(TreeNode* u) {
-        if (u == nullptr) return;
-        destroy(u -> left);
-        destroy(u -> right);
-        delete u;
+    int h(int u) {
+        return u == 0 ? -1 : t[u].height;
     }
 
-    int h(TreeNode* u) {
-        return u == nullptr ? -1 : u -> height;
+    void update(int u) {
+        int hl = h(t[u].left);
+        int hr = h(t[u].right);
+        t[u].height = 1 + (hl > hr ? hl : hr);
     }
 
-    void update(TreeNode* u) {
-        int hl = h(u -> left);
-        int hr = h(u -> right);
-        u -> height = 1 + (hl > hr ? hl : hr);
+    int FB(int u) {
+        return h(t[u].left) - h(t[u].right);
     }
 
-    int FB(TreeNode* u) {
-        return h(u -> left) - h(u -> right);
-    }
-
-    TreeNode* rotate_right(TreeNode* y) {
-        TreeNode* x = y -> left;
-        y -> left = x -> right;
-        x -> right = y;
+    int rotate_right(int y) {
+        int x = t[y].left;
+        t[y].left = t[x].right;
+        t[x].right = y;
         update(y);
         update(x);
         return x;
     }
 
-    TreeNode* rotate_left(TreeNode* x) {
-        TreeNode* y = x -> right;
-        x -> right = y -> left;
-        y -> left = x;
+    int rotate_left(int x) {
+        int y = t[x].right;
+        t[x].right = t[y].left;
+        t[y].left = x;
         update(x);
         update(y);
         return y;
     }
 
-    TreeNode* rebalance(TreeNode* u) {
+    int rebalance(int u) {
         update(u);
         if (FB(u) > 1) {
-            if (FB(u -> left) < 0) {
-                u -> left = rotate_left(u -> left);
+            if (FB(t[u].left) < 0) {
+                int r = rotate_left(t[u].left);
+                t[u].left = r;
             }
             return rotate_right(u);
         }
         if (FB(u) < -1) {
-            if (FB(u -> right) > 0) {
-                u -> right = rotate_right(u -> right);
+            if (FB(t[u].right) > 0) {
+                int r = rotate_right(t[u].right);
+                t[u].right = r;
             }
             return rotate_left(u);
         }
         return u;
     }
 
-    TreeNode* insert(TreeNode* u, T value) {
-        if (u == nullptr) {
-            return new TreeNode(value);
+    int insert(int u, T value) {
+        if (u == 0) {
+            return new_node(value);
         }
-        if (value < u -> data) {
-            u -> left = insert(u -> left, value);
+        if (value < t[u].data) {
+            int r = insert(t[u].left, value);
+            t[u].left = r;
         }
-        else if (value > u -> data) {
-            u -> right = insert(u -> right, value);
+        else if (value > t[u].data) {
+            int r = insert(t[u].right, value);
+            t[u].right = r;
         }
         else {
             return u;
@@ -99,52 +111,55 @@ struct AVL {
         root = insert(root, value);
     }
 
-    TreeNode* min_element(TreeNode* u) {
-        if (u == nullptr) return nullptr;
-        while (u -> left != nullptr) {
-            u = u -> left;
+    int min_element(int u) {
+        if (u == 0) return 0;
+        while (t[u].left != 0) {
+            u = t[u].left;
         }
         return u;
     }
 
-    TreeNode* max_element(TreeNode* u) {
-        if (u == nullptr) return nullptr;
-        while (u -> right != nullptr) {
-            u = u -> right;
+    int max_element(int u) {
+        if (u == 0) return 0;
+        while (t[u].right != 0) {
+            u = t[u].right;
         }
         return u;
     }
 
-    TreeNode* min_element() {
+    int min_element() {
         return min_element(root);
     }
 
-    TreeNode* max_element() {
+    int max_element() {
         return max_element(root);
     }
 
-    TreeNode* erase(TreeNode* u, T value) {
-        if (u == nullptr) return nullptr;
-        if (value < u -> data) {
-            u -> left = erase(u -> left, value);
+    int erase(int u, T value) {
+        if (u == 0) return 0;
+        if (value < t[u].data) {
+            int r = erase(t[u].left, value);
+            t[u].left = r;
         }
-        else if (value > u -> data) {
-            u -> right = erase(u -> right, value);
+        else if (value > t[u].data) {
+            int r = erase(t[u].right, value);
+            t[u].right = r;
         }
         else {
-            if (u -> left == nullptr) {
-                TreeNode* r = u -> right;
-                delete u;
+            if (t[u].left == 0) {
+                int r = t[u].right;
+                libres.push_back(u);
                 return r;
             }
-            if (u -> right == nullptr) {
-                TreeNode* l = u -> left;
-                delete u;
+            if (t[u].right == 0) {
+                int l = t[u].left;
+                libres.push_back(u);
                 return l;
             }
-            TreeNode* s = min_element(u -> right);
-            u -> data = s -> data;
-            u -> right = erase(u -> right, u -> data);
+            int s = min_element(t[u].right);
+            t[u].data = t[s].data;
+            int r = erase(t[u].right, t[u].data);
+            t[u].right = r;
         }
         return rebalance(u);
     }
@@ -154,16 +169,16 @@ struct AVL {
     }
 
     bool search(T key) {
-        TreeNode* current = root;
-        while (current != nullptr) {
-            if (current -> data == key) {
+        int current = root;
+        while (current != 0) {
+            if (t[current].data == key) {
                 return true;
             }
-            if (current -> data > key) {
-                current = current -> left;
+            if (t[current].data > key) {
+                current = t[current].left;
             }
             else {
-                current = current -> right;
+                current = t[current].right;
             }
         }
         return false;
@@ -174,11 +189,11 @@ struct AVL {
         cout << endl;
     }
 
-    void print_subtree_inorder(TreeNode* u) {
-        if (u == nullptr) return;
-        print_subtree_inorder(u -> left);
-        cout << u -> data << " ";
-        print_subtree_inorder(u -> right);
+    void print_subtree_inorder(int u) {
+        if (u == 0) return;
+        print_subtree_inorder(t[u].left);
+        cout << t[u].data << " ";
+        print_subtree_inorder(t[u].right);
     }
 
     void print_preorder() {
@@ -186,11 +201,11 @@ struct AVL {
         cout << endl;
     }
 
-    void print_subtree_preorder(TreeNode* u) {
-        if (u == nullptr) return;
-        cout << u -> data << " ";
-        print_subtree_preorder(u -> left);
-        print_subtree_preorder(u -> right);
+    void print_subtree_preorder(int u) {
+        if (u == 0) return;
+        cout << t[u].data << " ";
+        print_subtree_preorder(t[u].left);
+        print_subtree_preorder(t[u].right);
     }
 
     void print_postorder() {
@@ -198,11 +213,11 @@ struct AVL {
         cout << endl;
     }
 
-    void print_subtree_postorder(TreeNode* u) {
-        if (u == nullptr) return;
-        print_subtree_postorder(u -> left);
-        print_subtree_postorder(u -> right);
-        cout << u -> data << " ";
+    void print_subtree_postorder(int u) {
+        if (u == 0) return;
+        print_subtree_postorder(t[u].left);
+        print_subtree_postorder(t[u].right);
+        cout << t[u].data << " ";
     }
 };
 
@@ -214,7 +229,9 @@ int main() {
         int x;
         cin >> x;
         T.insert(x);
-        cout << T.h(T.root) << " " << T.root -> data << '\n';
+        cout << T.h(T.root) << " " << T.t[T.root].data << '\n';
     }
     return 0;
 }
+
+//
